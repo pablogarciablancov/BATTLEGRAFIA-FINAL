@@ -1,0 +1,6 @@
+(() => {
+  'use strict';
+  window.BG_CONTENT_BANKS = window.BG_CONTENT_BANKS || {};
+  // Banco de SEMÁNTICA: añade aquí tus frases por monstruo.
+  window.BG_CONTENT_BANKS.semantica = window.BG_CONTENT_BANKS.semantica || {};
+})();

@@ -1,0 +1,6 @@
+(() => {
+  'use strict';
+  window.BG_CONTENT_BANKS = window.BG_CONTENT_BANKS || {};
+  // Banco de SINTAXIS: añade aquí tus frases por monstruo.
+  window.BG_CONTENT_BANKS.sintaxis = window.BG_CONTENT_BANKS.sintaxis || {};
+})();
