@@ -163,6 +163,20 @@ body::before{
       justify-content:center;
       z-index:20;
     }
+	
+	/* === FIX: botones del bloque de guardado (no recortar "NUEVA AVENTURA") === */
+#start-screen .start-buttons{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;          /* si no cabe, baja a la línea siguiente */
+  align-items:center;
+}
+
+#start-screen .start-buttons button{
+  white-space:nowrap;      /* evita partir el texto raro */
+}
+
+	
     .start-panel{
       width:100%;
       max-width:520px;

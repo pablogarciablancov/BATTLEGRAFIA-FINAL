@@ -45,14 +45,77 @@
   }
 
   function showStartScreen(){
-    refreshRefs();
-    // Ocultar app-screens
-    appScreens.forEach(s => s.classList.remove('is-active'));
-    // Mostrar shell y start-screen
-    if(gameShell) gameShell.style.display = 'block';
-    const start = $('start-screen');
-    if(start) start.style.display = 'flex';
-  }
+  refreshRefs();
+  // Ocultar app-screens
+  appScreens.forEach(s => s.classList.remove('is-active'));
+  // Mostrar shell y start-screen
+  if(gameShell) gameShell.style.display = 'block';
+  const start = $('start-screen');
+  if(start) start.style.display = 'flex';
+
+  // --- NEW: ajustar UI según intención (new/continue) ---
+  try{
+    const continueBlock = $('continue-block');
+    const panel = document.querySelector('#start-screen .start-panel');
+    const warningId = 'start-overwrite-warning';
+
+    // modo actual (para el texto y para detectar si hay guardado)
+    const modeId = (() => {
+      try{ return localStorage.getItem('bg_modeId') || 'adventure'; }catch(e){ return 'adventure'; }
+    })();
+
+    const hasSaveForMode = (() => {
+      try{
+        if(window.BG && typeof window.BG.hasLocalSaveForMode === 'function'){
+          return !!window.BG.hasLocalSaveForMode(modeId);
+        }
+      }catch(e){}
+      // fallback: si el bloque estaba visible, asumimos que había guardado
+      return !!(continueBlock && continueBlock.style.display !== 'none');
+    })();
+
+    // helper para warning
+    const setWarning = (text) => {
+      if(!panel) return;
+      let w = document.getElementById(warningId);
+      if(!w){
+        w = document.createElement('div');
+        w.id = warningId;
+        w.className = 'hint start-overwrite-warning';
+
+        const startSub = panel.querySelector('.start-sub');
+        if(startSub && startSub.parentNode){
+          startSub.parentNode.insertBefore(w, startSub.nextSibling);
+        }else{
+          panel.insertBefore(w, panel.firstChild);
+        }
+      }
+      if(!text){
+        w.style.display = 'none';
+        return;
+      }
+      w.innerHTML = text;
+      w.style.display = 'block';
+    };
+
+    if(startIntent === 'new'){
+      // Nueva partida: NO mostrar continuar
+      if(continueBlock) continueBlock.style.display = 'none';
+
+      // Si existe guardado, avisamos de sobrescritura (como pedías)
+      if(hasSaveForMode){
+        setWarning(`⚠️ <strong>Ojo:</strong> hay una partida guardada en este modo (<strong>${modeId}</strong>). Si empiezas una nueva aventura, se sobrescribirá.`);
+      }else{
+        setWarning('');
+      }
+    }else{
+      // Continuar: dejamos el bloque si hay guardado
+      if(continueBlock) continueBlock.style.display = hasSaveForMode ? 'block' : 'none';
+      setWarning('');
+    }
+  }catch(e){}
+}
+
 
   function showModeMenu(){
       // En modo "continuar", ocultar modos sin guardado

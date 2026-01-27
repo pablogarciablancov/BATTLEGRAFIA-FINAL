@@ -272,11 +272,15 @@ function getUnlockedSet(){
   }
 
   function passFilter(a, unlocked){
-    if(STATE.filter === "unlocked") return unlocked;
-    if(STATE.filter === "locked") return !unlocked;
-    if(STATE.filter === "hidden") return !!a.hidden;
-    return true;
-  }
+  if(STATE.filter === "unlocked") return unlocked;
+  if(STATE.filter === "locked") return !unlocked;
+
+  // "hidden" debe significar: secretos YA desbloqueados (no “ver secretos bloqueados”)
+  if(STATE.filter === "hidden") return !!a.hidden && unlocked;
+
+  return true;
+}
+
 
   function passCategory(a){
     if(STATE.category === "all") return true;
@@ -290,59 +294,69 @@ function getUnlockedSet(){
   }
 
   function renderAchievementsHub(){
-    const grid = document.getElementById("hub-achievements-grid");
-    const summary = document.getElementById("hub-achievements-summary");
-    if(!grid) return;
+  const grid = document.getElementById("hub-achievements-grid");
+  const summary = document.getElementById("hub-achievements-summary");
+  if(!grid) return;
 
-    const catalog = window.BG_ACHIEVEMENTS_CATALOG || [];
-   const unlockedSet = getUnlockedSet();
+  const catalog = window.BG_ACHIEVEMENTS_CATALOG || [];
+  const unlockedSet = getUnlockedSet();
 
+  // Tabs + filtros (solo la primera vez, pero es barato)
+  const categories = buildCategories(catalog);
+  renderTabs(categories);
+  bindFilters();
 
-    // Tabs + filtros (solo la primera vez, pero es barato)
-    const categories = buildCategories(catalog);
-    renderTabs(categories);
-    bindFilters();
+  // Filtrado
+  let shown = 0;
+  let unlockedCount = 0;
 
-    // Filtrado
-    let shown = 0;
-    let unlockedCount = 0;
+  grid.innerHTML = "";
 
-    grid.innerHTML = "";
+  catalog.forEach(a=>{
+    const unlocked = unlockedSet.has(a.id);
+    if(unlocked) unlockedCount++;
 
-    catalog.forEach(a=>{
-      const unlocked = unlockedSet.has(a.id);
-      if(unlocked) unlockedCount++;
+    // ❌ Ya NO ocultamos secretos bloqueados: deben verse (con ???)
 
-      if(!passCategory(a)) return;
-      if(!passFilter(a, unlocked)) return;
-      if(!passSearch(a)) return;
+    if(!passCategory(a)) return;
+    if(!passFilter(a, unlocked)) return;
+    if(!passSearch(a)) return;
 
-      shown++;
+    shown++;
 
-      const card = document.createElement("div");
-      card.className = "ach-card" + (unlocked ? " unlocked" : "");
+    const card = document.createElement("div");
+    card.className = "ach-card" + (unlocked ? " unlocked" : "");
 
-      const icon = a.icon || (unlocked ? "🏆" : "🔒");
-      const titlePrefix = unlocked ? "" : "🔒 ";
+    const icon = a.icon || (unlocked ? "🏆" : "🔒");
+    const titlePrefix = unlocked ? "" : "🔒 ";
 
-      card.innerHTML = `
-        <div class="ach-top">
-          <div class="ach-icon">${icon}</div>
-          <div>
-            <div class="ach-title">${titlePrefix}${a.title}</div>
-            <div class="ach-desc">${a.desc || ""}</div>
-          </div>
+    // Si es secreto y está bloqueado: no enseñamos descripción
+    const descText = (!unlocked && a.hidden) ? "???" : (a.desc || "");
+
+    // Texto de estado
+    const metaText = unlocked
+      ? "Desbloqueado ✅"
+      : (a.hidden ? "Bloqueado · Secreto 🤫" : "Bloqueado");
+
+    card.innerHTML = `
+      <div class="ach-top">
+        <div class="ach-icon">${icon}</div>
+        <div>
+          <div class="ach-title">${titlePrefix}${a.title}</div>
+          <div class="ach-desc">${descText}</div>
         </div>
-        <div class="ach-meta">${unlocked ? "Desbloqueado ✅" : (a.hidden ? "Secreto 🤫" : "Bloqueado")}</div>
-      `;
+      </div>
+      <div class="ach-meta">${metaText}</div>
+    `;
 
-      grid.appendChild(card);
-    });
+    grid.appendChild(card);
+  });
 
-    if(summary){
-      summary.innerHTML = `Progreso: <strong>${unlockedCount}</strong> / <strong>${catalog.length}</strong> · Mostrando: <strong>${shown}</strong>`;
-    }
+  if(summary){
+    summary.innerHTML = `Progreso: <strong>${unlockedCount}</strong> / <strong>${catalog.length}</strong> · Mostrando: <strong>${shown}</strong>`;
   }
+}
+
 
   window.BG_UI = window.BG_UI || {};
   window.BG_UI.renderAchievementsHub = renderAchievementsHub;
