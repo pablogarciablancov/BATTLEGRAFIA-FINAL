@@ -2983,16 +2983,77 @@ function setPlayerRef(p){ player = p; try{ window.BG = window.BG || {}; window.B
     try{ window.BG_UI?.renderHubBackpack?.(); }catch(e){}
   }
 
-    function addItem(itemName){
-    if(runRules && !runRules.allowRewards) return false;
+  // ===== Inventario: capacidad + venta =====
+  const INVENTORY_MAX_ITEMS = 10; // capacidad total (contando duplicados)
+
+  function getItemSellValue(itemName){
+    // 1) Si es un objeto de tienda, vendemos a mitad de precio.
+    try{
+      const si = SHOP_ITEMS.find(x => x.name === itemName);
+      if(si) return Math.max(1, Math.floor((Number(si.cost) || 0) / 2));
+    }catch(e){}
+
+    // 2) Si está en defs, valor por rareza.
+    const def = ITEM_DEFS?.[itemName];
+    const rarity = def?.rarity || "common";
+    if(rarity === "legendary") return 20;
+    if(rarity === "rare") return 10;
+    if(rarity === "unique") return 6;
+    return 2; // common / default
+  }
+
+  function getInventoryCount(){
+    return Array.isArray(player?.items) ? player.items.length : 0;
+  }
+
+  function isInventoryFull(){
+    return getInventoryCount() >= INVENTORY_MAX_ITEMS;
+  }
+
+  function sellOneItem(itemName){
+    if(!player || !Array.isArray(player.items)) return;
+    const idx = player.items.indexOf(itemName);
+    if(idx < 0) return;
+
+    const value = getItemSellValue(itemName);
+    player.items.splice(idx, 1);
+    player.gold = (Number(player.gold) || 0) + value;
+    enforceDemoEconomy();
+    updateHeroUi();
+    savePlayer();
+    try{ window.BG_UI?.renderHubBackpack?.(); }catch(e){}
+
+    // Mensaje (si existe un contenedor de tienda en HUB)
+    try{
+      const hubMsg = document.getElementById('hub-shop-msg');
+      if(hubMsg){ hubMsg.innerHTML = `<span class="hint">Has vendido <strong>${itemName}</strong> por <strong>${value}</strong> oro.</span>`; }
+    }catch(e){}
+  }
+
+
+     function addItem(itemName){
+    if(runRules && !runRules.allowRewards) return;
 
     if(!player.items) player.items = [];
 
+    // Capacidad: si está llena, se convierte automáticamente en oro.
     if(player.items.length >= INVENTORY_MAX_ITEMS){
-      // Si prefieres: convertir a oro o “perderlo”, aquí es donde se decide.
-      try{ setLog?.(`<span class="bad">Tu mochila está llena (${INVENTORY_MAX_ITEMS}). No puedes llevar más objetos.</span>`); }catch(e){}
-      return false;
+      const value = getItemSellValue(itemName);
+      player.gold = (Number(player.gold) || 0) + value;
+      enforceDemoEconomy();
+      updateHeroUi();
+      savePlayer();
+      try{ window.BG_UI?.renderHubBackpack?.(); }catch(e){}
+      try{ setLog?.(`<span class="hint">Mochila llena (${INVENTORY_MAX_ITEMS}). <strong>${itemName}</strong> se ha convertido en <strong>${value}</strong> oro.</span>`); }catch(e){}
+      return;
     }
+
+    player.items.push(itemName);
+    updateHeroUi();
+    savePlayer();
+    try{ window.BG_UI?.renderHubBackpack?.(); }catch(e){}
+  }
+
 
     player.items.push(itemName);
     updateHeroUi();
@@ -4334,21 +4395,34 @@ function renderHubBackpack(){
     return;
   }
 
-  const gold = Number(player.gold) || 0;
+    const gold = Number(player.gold) || 0;
   const items = Array.isArray(player.items) ? player.items.slice() : [];
   const counts = {};
   for(const it of items){ counts[it] = (counts[it]||0) + 1; }
   const names = Object.keys(counts).sort((a,b)=>a.localeCompare(b,'es'));
 
-  const maxChips = 8;
-  const shown = names.slice(0, maxChips);
-  const rest = Math.max(0, names.length - shown.length);
-
-  const chipsHtml = shown.length
-    ? `<div class="bp-items">${shown.map(name=>`<div class="bp-chip"><span class="qty">x${counts[name]}</span><span class="name">${name}</span></div>`).join('')}${rest?`<div class="bp-chip"><span class="name">y ${rest} más…</span></div>`:''}</div>`
+  const chipsHtml = names.length
+    ? `<div class="bp-items">${names.map(name=>{
+        const value = getItemSellValue(name);
+        return `<div class="bp-chip" data-name="${name}"><span class="qty">x${counts[name]}</span><span class="name">${name}</span><button class="bp-sell" type="button">Vender +${value}</button></div>`;
+      }).join('')}</div>`
     : `<div class="bp-empty">No tienes objetos todavía.</div>`;
 
-  mount.innerHTML = `<div class="bp-head"><div class="bp-title">Mochila</div><div class="bp-gold"><span class="coin"></span><span>${gold}</span></div></div>${chipsHtml}`;
+  mount.innerHTML = `<div class="bp-head">
+      <div class="bp-title">Mochila <span class="bp-cap">(${items.length}/${INVENTORY_MAX_ITEMS})</span></div>
+      <div class="bp-gold"><span class="coin"></span><span>${gold}</span></div>
+    </div>${chipsHtml}`;
+
+  // Vender (1 unidad por clic)
+  mount.querySelectorAll('.bp-sell').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const chip = btn.closest('.bp-chip');
+      const name = chip ? chip.getAttribute('data-name') : null;
+      if(!name) return;
+      sellOneItem(name);
+      try{ renderHubShop(); }catch(e){}
+    });
+  });
 }
 
 // Exponer render de mochila HUB
@@ -4388,6 +4462,13 @@ window.BG_UI.renderHubBackpack = renderHubBackpack;
     const item = SHOP_ITEMS.find(x => x.id === id);
     if(!item) return;
 
+    // Capacidad de mochila (para compras no auto-convertimos a oro: se bloquea)
+    if(isInventoryFull()){
+      showMsg(`<span class="bad">Tu mochila está llena (${INVENTORY_MAX_ITEMS}). Vende o usa objetos antes de comprar.</span>`);
+      return;
+    }
+
+
     // Stock diario
     const remaining = getRemainingStock(item.id);
     if(remaining <= 0){
@@ -4409,7 +4490,7 @@ window.BG_UI.renderHubBackpack = renderHubBackpack;
     }
 
     // Comprar = pagar + añadir al inventario. No se aplica el efecto hasta que el alumno lo use.
-        player.gold = goldNow - item.cost;
+    player.gold = goldNow - item.cost;
 
     const ok = addItem(item.name);
     if(!ok){
