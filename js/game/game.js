@@ -2053,6 +2053,94 @@ function makeMonsterSprite(name, tone){
     { id:"expansor_tildes", name:"Expansor de tildes", cost:25, description:"Tu próximo ataque perfecto hará más daño gracias a las tildes.", effect:{ type:"battleConsumable" }, icon:"img/items/item_expansor_tildes.webp" }
   ];
 
+  // ===== Economía: límites =====
+  const INVENTORY_MAX_ITEMS = 12; // capacidad total de mochila (ítems totales, contando duplicados)
+
+  // Stock diario por objeto (por defecto). Puedes ajustarlo cuando quieras.
+  const SHOP_DAILY_STOCK = {
+    pluma_maestra: 1,
+    cuaderno_descanso: 1,
+    botas_corregidor: 2,
+    pista_simple: 6,
+    pocion_tinta: 3,
+    escudo_gramatical: 3,
+    pocion_debilitante: 2,
+    tinta_corrosiva: 2,
+    expansor_tildes: 3
+  };
+
+  function getTodayKey(){
+    // YYYY-MM-DD en hora local (suficiente para stock diario)
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  }
+
+  function getShopStockStorageKey(){
+    // Stock por modo para que no “compres en Práctica” y afecte a Aventura, etc.
+    let modeId = "adventure";
+    try{ modeId = localStorage.getItem("bg_modeId") || modeId; }catch(e){}
+    return `bg_shop_stock_v1_${modeId}`;
+  }
+
+  function loadShopStock(){
+    try{
+      const raw = localStorage.getItem(getShopStockStorageKey());
+      return raw ? JSON.parse(raw) : null;
+    }catch(e){
+      return null;
+    }
+  }
+
+  function saveShopStock(stock){
+    try{
+      localStorage.setItem(getShopStockStorageKey(), JSON.stringify(stock));
+    }catch(e){}
+  }
+
+  function ensureShopStock(){
+    const today = getTodayKey();
+    let stock = loadShopStock();
+
+    if(!stock || stock.date !== today || !stock.remaining){
+      stock = { date: today, remaining: {} };
+      SHOP_ITEMS.forEach(it => {
+        const qty = Number(SHOP_DAILY_STOCK[it.id] ?? 0);
+        stock.remaining[it.id] = Math.max(0, qty);
+      });
+      saveShopStock(stock);
+    }
+
+    return stock;
+  }
+
+  function getRemainingStock(itemId){
+    const stock = ensureShopStock();
+    const n = Number(stock?.remaining?.[itemId] ?? 0);
+    return Math.max(0, n);
+  }
+
+  function consumeStock(itemId, amount = 1){
+    const stock = ensureShopStock();
+    const cur = Number(stock.remaining[itemId] ?? 0);
+    const next = Math.max(0, cur - amount);
+    stock.remaining[itemId] = next;
+    saveShopStock(stock);
+    return next;
+  }
+
+  function getInventoryCount(){
+    return Array.isArray(player?.items) ? player.items.length : 0;
+  }
+
+  function isInventoryFull(){
+    return getInventoryCount() >= INVENTORY_MAX_ITEMS;
+  }
+
+
+
   const DEFAULT_ITEM_ICON = "img/items/item_pista_simple.webp";
 
   const ITEM_DEFS = {
@@ -2895,13 +2983,24 @@ function setPlayerRef(p){ player = p; try{ window.BG = window.BG || {}; window.B
     try{ window.BG_UI?.renderHubBackpack?.(); }catch(e){}
   }
 
-  function addItem(itemName){
-    if(runRules && !runRules.allowRewards) return;
+    function addItem(itemName){
+    if(runRules && !runRules.allowRewards) return false;
+
+    if(!player.items) player.items = [];
+
+    if(player.items.length >= INVENTORY_MAX_ITEMS){
+      // Si prefieres: convertir a oro o “perderlo”, aquí es donde se decide.
+      try{ setLog?.(`<span class="bad">Tu mochila está llena (${INVENTORY_MAX_ITEMS}). No puedes llevar más objetos.</span>`); }catch(e){}
+      return false;
+    }
+
     player.items.push(itemName);
     updateHeroUi();
     savePlayer();
     try{ window.BG_UI?.renderHubBackpack?.(); }catch(e){}
+    return true;
   }
+
 
   function removeOneItem(itemName){
     const idx = player.items.indexOf(itemName);
@@ -4113,6 +4212,8 @@ function setPlayerRef(p){ player = p; try{ window.BG = window.BG || {}; window.B
       const ownedCount = player.items.filter(i => i === item.name).length;
       const ownedText = ownedCount > 0 ? `<div class="shop-owned">Ya tienes ${ownedCount} en tu inventario.</div>` : "";
       const icon = item.icon || "";
+      const remaining = getRemainingStock(item.id);
+      const stockText = `<div class="shop-owned">Stock hoy: <strong>${remaining}</strong></div>`;
 
       return `
         <div class="shop-item" data-id="${item.id}">
@@ -4128,6 +4229,8 @@ function setPlayerRef(p){ player = p; try{ window.BG = window.BG || {}; window.B
             <button class="shop-buy-btn">Comprar</button>
           </div>
           ${ownedText}
+          ${stockText}
+
         </div>
       `;
     }).join("");
@@ -4173,6 +4276,9 @@ function renderHubShop(){
     const ownedCount = player.items.filter(i => i === item.name).length;
     const ownedText = ownedCount > 0 ? `<div class="shop-owned">Ya tienes ${ownedCount} en tu inventario.</div>` : "";
     const icon = item.icon || "";
+	const remaining = getRemainingStock(item.id);
+    const stockText = `<div class="shop-owned">Stock hoy: <strong>${remaining}</strong></div>`;
+
     return `
       <div class="shop-item" data-id="${item.id}">
         <div class="shop-item-main">
@@ -4187,6 +4293,7 @@ function renderHubShop(){
           <button class="shop-buy-btn">Comprar</button>
         </div>
         ${ownedText}
+		${stockText}
       </div>
     `;
   }).join('');
@@ -4281,6 +4388,20 @@ window.BG_UI.renderHubBackpack = renderHubBackpack;
     const item = SHOP_ITEMS.find(x => x.id === id);
     if(!item) return;
 
+    // Stock diario
+    const remaining = getRemainingStock(item.id);
+    if(remaining <= 0){
+      showMsg(`<span class="hint"><strong>${item.name}</strong> está agotado por hoy. Vuelve mañana.</span>`);
+      return;
+    }
+
+    // Capacidad mochila
+    if(isInventoryFull()){
+      showMsg(`<span class="bad">Tu mochila está llena (${INVENTORY_MAX_ITEMS}). Usa objetos o vacía espacio antes de comprar.</span>`);
+      return;
+    }
+
+
     const goldNow = Number(player?.gold) || 0;
     if(goldNow < item.cost){
       showMsg(`<span class="bad">No tienes suficiente oro para comprar <strong>${item.name}</strong>. Te faltan ${item.cost - goldNow}.</span>`);
@@ -4288,8 +4409,18 @@ window.BG_UI.renderHubBackpack = renderHubBackpack;
     }
 
     // Comprar = pagar + añadir al inventario. No se aplica el efecto hasta que el alumno lo use.
-    player.gold = goldNow - item.cost;
-    addItem(item.name);
+        player.gold = goldNow - item.cost;
+
+    const ok = addItem(item.name);
+    if(!ok){
+      // devolución por si justo se llenó (defensivo)
+      player.gold = goldNow;
+      showMsg(`<span class="bad">No se pudo guardar el objeto: mochila llena.</span>`);
+      return;
+    }
+
+    consumeStock(item.id, 1);
+
 
     showMsg(`<span class="good">Has comprado <strong>${item.name}</strong>.</span> Se ha guardado en tu inventario para usarlo cuando quieras.`);
     updateHpBars();
