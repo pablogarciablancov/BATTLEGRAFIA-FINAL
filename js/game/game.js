@@ -5041,6 +5041,14 @@ function endRunWinAll(){
     currentMonsterHp = monster.maxHp;
     resetBattleState();
 
+// FIX: al morir se bloquean controles; al “continuar” deben reactivarse
+try{
+  battleState.isDeathAnimating = false; // por si quedó enganchado
+  unlockBattleControls();
+  if(answerEl) answerEl.disabled = false; // extra defensivo
+}catch(e){}
+
+
     updateHeroUi();
     updateHpBars();
     savePlayer();
