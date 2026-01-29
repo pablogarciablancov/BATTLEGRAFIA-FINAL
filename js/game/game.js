@@ -2053,94 +2053,6 @@ function makeMonsterSprite(name, tone){
     { id:"expansor_tildes", name:"Expansor de tildes", cost:25, description:"Tu próximo ataque perfecto hará más daño gracias a las tildes.", effect:{ type:"battleConsumable" }, icon:"img/items/item_expansor_tildes.webp" }
   ];
 
-  // ===== Economía: límites =====
-  const INVENTORY_MAX_ITEMS = 12; // capacidad total de mochila (ítems totales, contando duplicados)
-
-  // Stock diario por objeto (por defecto). Puedes ajustarlo cuando quieras.
-  const SHOP_DAILY_STOCK = {
-    pluma_maestra: 1,
-    cuaderno_descanso: 1,
-    botas_corregidor: 2,
-    pista_simple: 6,
-    pocion_tinta: 3,
-    escudo_gramatical: 3,
-    pocion_debilitante: 2,
-    tinta_corrosiva: 2,
-    expansor_tildes: 3
-  };
-
-  function getTodayKey(){
-    // YYYY-MM-DD en hora local (suficiente para stock diario)
-    const d = new Date();
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, "0");
-    const day = String(d.getDate()).padStart(2, "0");
-    return `${y}-${m}-${day}`;
-  }
-
-  function getShopStockStorageKey(){
-    // Stock por modo para que no “compres en Práctica” y afecte a Aventura, etc.
-    let modeId = "adventure";
-    try{ modeId = localStorage.getItem("bg_modeId") || modeId; }catch(e){}
-    return `bg_shop_stock_v1_${modeId}`;
-  }
-
-  function loadShopStock(){
-    try{
-      const raw = localStorage.getItem(getShopStockStorageKey());
-      return raw ? JSON.parse(raw) : null;
-    }catch(e){
-      return null;
-    }
-  }
-
-  function saveShopStock(stock){
-    try{
-      localStorage.setItem(getShopStockStorageKey(), JSON.stringify(stock));
-    }catch(e){}
-  }
-
-  function ensureShopStock(){
-    const today = getTodayKey();
-    let stock = loadShopStock();
-
-    if(!stock || stock.date !== today || !stock.remaining){
-      stock = { date: today, remaining: {} };
-      SHOP_ITEMS.forEach(it => {
-        const qty = Number(SHOP_DAILY_STOCK[it.id] ?? 0);
-        stock.remaining[it.id] = Math.max(0, qty);
-      });
-      saveShopStock(stock);
-    }
-
-    return stock;
-  }
-
-  function getRemainingStock(itemId){
-    const stock = ensureShopStock();
-    const n = Number(stock?.remaining?.[itemId] ?? 0);
-    return Math.max(0, n);
-  }
-
-  function consumeStock(itemId, amount = 1){
-    const stock = ensureShopStock();
-    const cur = Number(stock.remaining[itemId] ?? 0);
-    const next = Math.max(0, cur - amount);
-    stock.remaining[itemId] = next;
-    saveShopStock(stock);
-    return next;
-  }
-
-  function getInventoryCount(){
-    return Array.isArray(player?.items) ? player.items.length : 0;
-  }
-
-  function isInventoryFull(){
-    return getInventoryCount() >= INVENTORY_MAX_ITEMS;
-  }
-
-
-
   const DEFAULT_ITEM_ICON = "img/items/item_pista_simple.webp";
 
   const ITEM_DEFS = {
@@ -2983,85 +2895,13 @@ function setPlayerRef(p){ player = p; try{ window.BG = window.BG || {}; window.B
     try{ window.BG_UI?.renderHubBackpack?.(); }catch(e){}
   }
 
-  // ===== Inventario: capacidad + venta =====
-  const INVENTORY_MAX_ITEMS = 10; // capacidad total (contando duplicados)
-
-  function getItemSellValue(itemName){
-    // 1) Si es un objeto de tienda, vendemos a mitad de precio.
-    try{
-      const si = SHOP_ITEMS.find(x => x.name === itemName);
-      if(si) return Math.max(1, Math.floor((Number(si.cost) || 0) / 2));
-    }catch(e){}
-
-    // 2) Si está en defs, valor por rareza.
-    const def = ITEM_DEFS?.[itemName];
-    const rarity = def?.rarity || "common";
-    if(rarity === "legendary") return 20;
-    if(rarity === "rare") return 10;
-    if(rarity === "unique") return 6;
-    return 2; // common / default
-  }
-
-  function getInventoryCount(){
-    return Array.isArray(player?.items) ? player.items.length : 0;
-  }
-
-  function isInventoryFull(){
-    return getInventoryCount() >= INVENTORY_MAX_ITEMS;
-  }
-
-  function sellOneItem(itemName){
-    if(!player || !Array.isArray(player.items)) return;
-    const idx = player.items.indexOf(itemName);
-    if(idx < 0) return;
-
-    const value = getItemSellValue(itemName);
-    player.items.splice(idx, 1);
-    player.gold = (Number(player.gold) || 0) + value;
-    enforceDemoEconomy();
-    updateHeroUi();
-    savePlayer();
-    try{ window.BG_UI?.renderHubBackpack?.(); }catch(e){}
-
-    // Mensaje (si existe un contenedor de tienda en HUB)
-    try{
-      const hubMsg = document.getElementById('hub-shop-msg');
-      if(hubMsg){ hubMsg.innerHTML = `<span class="hint">Has vendido <strong>${itemName}</strong> por <strong>${value}</strong> oro.</span>`; }
-    }catch(e){}
-  }
-
-
-     function addItem(itemName){
+  function addItem(itemName){
     if(runRules && !runRules.allowRewards) return;
-
-    if(!player.items) player.items = [];
-
-    // Capacidad: si está llena, se convierte automáticamente en oro.
-    if(player.items.length >= INVENTORY_MAX_ITEMS){
-      const value = getItemSellValue(itemName);
-      player.gold = (Number(player.gold) || 0) + value;
-      enforceDemoEconomy();
-      updateHeroUi();
-      savePlayer();
-      try{ window.BG_UI?.renderHubBackpack?.(); }catch(e){}
-      try{ setLog?.(`<span class="hint">Mochila llena (${INVENTORY_MAX_ITEMS}). <strong>${itemName}</strong> se ha convertido en <strong>${value}</strong> oro.</span>`); }catch(e){}
-      return;
-    }
-
     player.items.push(itemName);
     updateHeroUi();
     savePlayer();
     try{ window.BG_UI?.renderHubBackpack?.(); }catch(e){}
   }
-
-
-    player.items.push(itemName);
-    updateHeroUi();
-    savePlayer();
-    try{ window.BG_UI?.renderHubBackpack?.(); }catch(e){}
-    return true;
-  }
-
 
   function removeOneItem(itemName){
     const idx = player.items.indexOf(itemName);
@@ -4273,8 +4113,6 @@ function setPlayerRef(p){ player = p; try{ window.BG = window.BG || {}; window.B
       const ownedCount = player.items.filter(i => i === item.name).length;
       const ownedText = ownedCount > 0 ? `<div class="shop-owned">Ya tienes ${ownedCount} en tu inventario.</div>` : "";
       const icon = item.icon || "";
-      const remaining = getRemainingStock(item.id);
-      const stockText = `<div class="shop-owned">Stock hoy: <strong>${remaining}</strong></div>`;
 
       return `
         <div class="shop-item" data-id="${item.id}">
@@ -4290,8 +4128,6 @@ function setPlayerRef(p){ player = p; try{ window.BG = window.BG || {}; window.B
             <button class="shop-buy-btn">Comprar</button>
           </div>
           ${ownedText}
-          ${stockText}
-
         </div>
       `;
     }).join("");
@@ -4337,9 +4173,6 @@ function renderHubShop(){
     const ownedCount = player.items.filter(i => i === item.name).length;
     const ownedText = ownedCount > 0 ? `<div class="shop-owned">Ya tienes ${ownedCount} en tu inventario.</div>` : "";
     const icon = item.icon || "";
-	const remaining = getRemainingStock(item.id);
-    const stockText = `<div class="shop-owned">Stock hoy: <strong>${remaining}</strong></div>`;
-
     return `
       <div class="shop-item" data-id="${item.id}">
         <div class="shop-item-main">
@@ -4354,7 +4187,6 @@ function renderHubShop(){
           <button class="shop-buy-btn">Comprar</button>
         </div>
         ${ownedText}
-		${stockText}
       </div>
     `;
   }).join('');
@@ -4395,34 +4227,21 @@ function renderHubBackpack(){
     return;
   }
 
-    const gold = Number(player.gold) || 0;
+  const gold = Number(player.gold) || 0;
   const items = Array.isArray(player.items) ? player.items.slice() : [];
   const counts = {};
   for(const it of items){ counts[it] = (counts[it]||0) + 1; }
   const names = Object.keys(counts).sort((a,b)=>a.localeCompare(b,'es'));
 
-  const chipsHtml = names.length
-    ? `<div class="bp-items">${names.map(name=>{
-        const value = getItemSellValue(name);
-        return `<div class="bp-chip" data-name="${name}"><span class="qty">x${counts[name]}</span><span class="name">${name}</span><button class="bp-sell" type="button">Vender +${value}</button></div>`;
-      }).join('')}</div>`
+  const maxChips = 8;
+  const shown = names.slice(0, maxChips);
+  const rest = Math.max(0, names.length - shown.length);
+
+  const chipsHtml = shown.length
+    ? `<div class="bp-items">${shown.map(name=>`<div class="bp-chip"><span class="qty">x${counts[name]}</span><span class="name">${name}</span></div>`).join('')}${rest?`<div class="bp-chip"><span class="name">y ${rest} más…</span></div>`:''}</div>`
     : `<div class="bp-empty">No tienes objetos todavía.</div>`;
 
-  mount.innerHTML = `<div class="bp-head">
-      <div class="bp-title">Mochila <span class="bp-cap">(${items.length}/${INVENTORY_MAX_ITEMS})</span></div>
-      <div class="bp-gold"><span class="coin"></span><span>${gold}</span></div>
-    </div>${chipsHtml}`;
-
-  // Vender (1 unidad por clic)
-  mount.querySelectorAll('.bp-sell').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const chip = btn.closest('.bp-chip');
-      const name = chip ? chip.getAttribute('data-name') : null;
-      if(!name) return;
-      sellOneItem(name);
-      try{ renderHubShop(); }catch(e){}
-    });
-  });
+  mount.innerHTML = `<div class="bp-head"><div class="bp-title">Mochila</div><div class="bp-gold"><span class="coin"></span><span>${gold}</span></div></div>${chipsHtml}`;
 }
 
 // Exponer render de mochila HUB
@@ -4462,27 +4281,6 @@ window.BG_UI.renderHubBackpack = renderHubBackpack;
     const item = SHOP_ITEMS.find(x => x.id === id);
     if(!item) return;
 
-    // Capacidad de mochila (para compras no auto-convertimos a oro: se bloquea)
-    if(isInventoryFull()){
-      showMsg(`<span class="bad">Tu mochila está llena (${INVENTORY_MAX_ITEMS}). Vende o usa objetos antes de comprar.</span>`);
-      return;
-    }
-
-
-    // Stock diario
-    const remaining = getRemainingStock(item.id);
-    if(remaining <= 0){
-      showMsg(`<span class="hint"><strong>${item.name}</strong> está agotado por hoy. Vuelve mañana.</span>`);
-      return;
-    }
-
-    // Capacidad mochila
-    if(isInventoryFull()){
-      showMsg(`<span class="bad">Tu mochila está llena (${INVENTORY_MAX_ITEMS}). Usa objetos o vacía espacio antes de comprar.</span>`);
-      return;
-    }
-
-
     const goldNow = Number(player?.gold) || 0;
     if(goldNow < item.cost){
       showMsg(`<span class="bad">No tienes suficiente oro para comprar <strong>${item.name}</strong>. Te faltan ${item.cost - goldNow}.</span>`);
@@ -4491,17 +4289,7 @@ window.BG_UI.renderHubBackpack = renderHubBackpack;
 
     // Comprar = pagar + añadir al inventario. No se aplica el efecto hasta que el alumno lo use.
     player.gold = goldNow - item.cost;
-
-    const ok = addItem(item.name);
-    if(!ok){
-      // devolución por si justo se llenó (defensivo)
-      player.gold = goldNow;
-      showMsg(`<span class="bad">No se pudo guardar el objeto: mochila llena.</span>`);
-      return;
-    }
-
-    consumeStock(item.id, 1);
-
+    addItem(item.name);
 
     showMsg(`<span class="good">Has comprado <strong>${item.name}</strong>.</span> Se ha guardado en tu inventario para usarlo cuando quieras.`);
     updateHpBars();
@@ -5252,14 +5040,6 @@ function endRunWinAll(){
     // Resetea combate actual
     currentMonsterHp = monster.maxHp;
     resetBattleState();
-
-// FIX: al morir se bloquean controles; al “continuar” deben reactivarse
-try{
-  battleState.isDeathAnimating = false; // por si quedó enganchado
-  unlockBattleControls();
-  if(answerEl) answerEl.disabled = false; // extra defensivo
-}catch(e){}
-
 
     updateHeroUi();
     updateHpBars();
