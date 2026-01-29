@@ -2713,3 +2713,176 @@ footer.copyright{
   border-radius: 10px;
   font-weight: 900;
 }
+
+/* === Mercader (HUB tienda) === */
+.merchant-home{
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+  align-items:center;
+}
+
+.merchant-portrait{
+  width:100%;
+  max-width:520px;
+  aspect-ratio: 16 / 9;
+  border-radius:16px;
+  background-size:cover;
+  background-position:center;
+  border: 1px solid rgba(255,255,255,.12);
+  box-shadow: 0 10px 30px rgba(0,0,0,.35);
+}
+
+.merchant-actions{
+  display:flex;
+  gap:12px;
+  flex-wrap:wrap;
+  justify-content:center;
+}
+
+.merchant-topbar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  margin-bottom:12px;
+}
+
+.merchant-title{
+  font-weight:900;
+  letter-spacing:.4px;
+}
+
+/* === Merchant UI (HUB Shop) - estilo RPG/panel === */
+.merchant-screen{
+  width: 100%;
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(0,0,0,.18);
+  box-shadow: 0 12px 34px rgba(0,0,0,.35);
+}
+
+.merchant-topbar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  padding: 10px 10px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(0,0,0,.16);
+  margin-bottom: 12px;
+}
+
+.merchant-title{
+  font-weight: 900;
+  letter-spacing: .5px;
+}
+
+.merchant-badge{
+  font-weight: 900;
+  opacity: .95;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.14);
+  background: rgba(0,0,0,.22);
+  white-space: nowrap;
+}
+
+.merchant-msg{
+  min-height: 20px;
+  margin: 8px 2px 12px;
+  opacity: .95;
+}
+
+.merchant-grid{
+  display:grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+  max-height: 62vh;
+  overflow:auto;
+  padding-right: 6px;
+}
+
+.merchant-card{
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(0,0,0,.14);
+  padding: 12px;
+  display:flex;
+  flex-direction:column;
+  gap: 10px;
+}
+
+.merchant-card-main{
+  display:flex;
+  gap: 12px;
+  align-items:flex-start;
+}
+
+.merchant-icon{
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+  image-rendering: pixelated;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.06);
+  padding: 6px;
+  flex: 0 0 auto;
+}
+
+.merchant-info{
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.merchant-name{
+  font-weight: 900;
+  font-size: 13px;
+  line-height: 1.15;
+  margin-bottom: 4px;
+}
+
+.merchant-desc{
+  opacity: .9;
+  font-size: 12px;
+  line-height: 1.25;
+  margin-bottom: 6px;
+}
+
+.merchant-sub{
+  font-size: 12px;
+  opacity: .92;
+}
+
+.merchant-sub.ghost,
+.merchant-price.ghost{
+  opacity: .65;
+}
+
+.merchant-card-footer{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap: 10px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255,255,255,.10);
+}
+
+.merchant-price{
+  font-weight: 900;
+  white-space: nowrap;
+  display:flex;
+  align-items:center;
+  gap: 6px;
+}
+
+.merchant-action{
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-weight: 900;
+}

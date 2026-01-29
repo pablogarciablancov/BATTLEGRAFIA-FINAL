@@ -2832,13 +2832,26 @@ function setPlayerRef(p){ player = p; try{ window.BG = window.BG || {}; window.B
     if(sb && currentUser){
       try{
         const remote = await remoteLoad();
-        if(remote){
-          // Sincronizamos también el guardado local por compatibilidad
-          try{
-            localStorage.setItem(storageKeyForMode(STORAGE_KEY), JSON.stringify(remote));
-          }catch(e){}
-          return remote;
-        }
+if(remote){
+  // ✅ Normaliza para que no falten campos al venir de nube
+  if(!Array.isArray(remote.items)) remote.items = [];
+  if(!Array.isArray(remote.cards)) remote.cards = [];
+  if(!Array.isArray(remote.defeatedMonsters)) remote.defeatedMonsters = [];
+  if(typeof remote.maxHp === "undefined") remote.maxHp = 100;
+  if(typeof remote.hp === "undefined") remote.hp = remote.maxHp;
+  if(typeof remote.gold === "undefined") remote.gold = 0;
+  if(typeof remote.level === "undefined") remote.level = 1;
+  if(typeof remote.xp === "undefined") remote.xp = 0;
+  if(typeof remote.xpToNext === "undefined") remote.xpToNext = 100;
+  if(typeof remote.monstersDefeated === "undefined") remote.monstersDefeated = 0;
+
+  // Sincronizamos también el guardado local por compatibilidad
+  try{
+    localStorage.setItem(storageKeyForMode(STORAGE_KEY), JSON.stringify(remote));
+  }catch(e){}
+  return remote;
+}
+
       }catch(e){
         console.warn("Remote load error:", e);
       }
@@ -3151,15 +3164,18 @@ function setPlayerRef(p){ player = p; try{ window.BG = window.BG || {}; window.B
     xpBarFill.style.width = xpPercent + "%";
     xpText.textContent = `EXP ${player.xp} / ${Number.isFinite(player.xpToNext)?player.xpToNext:100}`;
 
-    heroGoldEl.textContent = `Oro: ${player.gold}`;
-    heroCardsCountEl.textContent = `Cartas: ${player.cards.length}`;
+   heroGoldEl.textContent = `Oro: ${player.gold}`;
 
-    // Objetos
-    if(player.items.length === 0){
+const safeCards = Array.isArray(player.cards) ? player.cards : [];
+heroCardsCountEl.textContent = `Cartas: ${safeCards.length}`;
+
+// Objetos
+const safeItems = Array.isArray(player.items) ? player.items : [];
+if(safeItems.length === 0){
       itemsListEl.innerHTML = `<span class="hint">Sin objetos... de momento.</span>`;
     }else{
       const counts = {};
-      player.items.forEach(n => { counts[n] = (counts[n]||0) + 1; });
+      safeItems.forEach(n => { counts[n] = (counts[n]||0) + 1; });
 
       const itemsHtml =
         `<div class="inv-grid">` +
@@ -4150,6 +4166,38 @@ function getHubShopMount(){
   return mount;
 }
 
+function getShopIconByItemName(itemName){
+  const si = SHOP_ITEMS.find(x => x.name === itemName);
+  if(si?.icon) return si.icon;
+  const def = ITEM_DEFS?.[itemName];
+  return def?.icon || DEFAULT_ITEM_ICON;
+}
+
+function getSellValue(itemName){
+  const si = SHOP_ITEMS.find(x => x.name === itemName);
+  if(si) return Math.max(1, Math.floor((Number(si.cost) || 0) / 2));
+  return 2;
+}
+
+function sellOneItem(itemName){
+  if(!player || !Array.isArray(player.items)) return false;
+  const idx = player.items.indexOf(itemName);
+  if(idx < 0) return false;
+
+  const value = getSellValue(itemName);
+  player.items.splice(idx, 1);
+  player.gold = (Number(player.gold) || 0) + value;
+
+  updateHeroUi();
+  savePlayer();
+
+  try{ window.BG_UI?.renderHubBackpack?.(); }catch(e){}
+  return true;
+}
+
+  const HUB_MERCHANT_IMG = "img/menus/menu_merchant.webp"; // cámbialo si tu nombre/ruta es otra
+
+
 function renderHubShop(){
   const mount = getHubShopMount();
   if(!mount) return;
@@ -4163,43 +4211,195 @@ function renderHubShop(){
     mount.innerHTML = `<div class="hint">Sin conexión: ahora mismo no puedes usar la tienda. Vuelve a conectarte a Internet.</div>`;
     return;
   }
-
   if(!player){
     mount.innerHTML = `<div class="hint">Cargando datos de jugador…</div>`;
     return;
   }
 
-  mount.innerHTML = `<div id="hub-shop-msg" class="shop-msg"></div>` + SHOP_ITEMS.map(item => {
-    const ownedCount = player.items.filter(i => i === item.name).length;
-    const ownedText = ownedCount > 0 ? `<div class="shop-owned">Ya tienes ${ownedCount} en tu inventario.</div>` : "";
-    const icon = item.icon || "";
-    return `
-      <div class="shop-item" data-id="${item.id}">
-        <div class="shop-item-main">
-          ${icon ? `<img src="${icon}" class="shop-item-icon" alt="">` : ""}
-          <div class="shop-item-text">
-            <div class="shop-item-name">${item.name}</div>
-            <div class="shop-item-desc">${item.description}</div>
-          </div>
+  // ✅ Blindaje: inventario siempre es array
+  if(!Array.isArray(player.items)) player.items = [];
+  const inv = player.items;
+
+// Fallback seguro por si aún no existe la constante global
+const INVENTORY_LIMIT = (typeof INVENTORY_MAX_ITEMS !== "undefined")
+  ? INVENTORY_MAX_ITEMS
+  : inv.length;
+
+
+  // Si no está definido (por compatibilidad), arrancamos en home
+  if(!hubShopView) hubShopView = "home";
+
+  // ===== Vista HOME (mercader) =====
+  if(hubShopView === "home"){
+    mount.innerHTML = `
+      <div class="merchant-home">
+        <div class="merchant-portrait" style="background-image:url('${HUB_MERCHANT_IMG}')"></div>
+        <div class="merchant-actions">
+          <button class="btn big" id="merchant-buy">Comprar</button>
+          <button class="btn big" id="merchant-sell">Vender</button>
         </div>
-        <div class="shop-item-footer">
-          <div class="shop-price">${item.cost} oro</div>
-          <button class="shop-buy-btn">Comprar</button>
-        </div>
-        ${ownedText}
+        <div class="merchant-hint">¿Qué necesitas hoy, viajero?</div>
       </div>
     `;
-  }).join('');
+    mount.querySelector('#merchant-buy')?.addEventListener('click', ()=>{ hubShopView = "buy"; renderHubShop(); });
+    mount.querySelector('#merchant-sell')?.addEventListener('click', ()=>{ hubShopView = "sell"; renderHubShop(); });
+    return;
+  }
 
-  mount.querySelectorAll('.shop-item .shop-buy-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const root = btn.closest('.shop-item');
-      if(!root) return;
-      (window.buyShopItem || buyShopItem)(root.dataset.id);
-      try{ renderHubShop(); }catch(e){}
+  // ===== Vista BUY (tienda tal cual) =====
+  if(hubShopView === "buy"){
+   mount.innerHTML = `
+  <div class="merchant-screen">
+    <div class="merchant-topbar">
+      <button class="btn" id="merchant-back">← Mercader</button>
+      <div class="merchant-title">Comprar</div>
+      <div class="merchant-badge">Mochila ${inv.length}/${INVENTORY_LIMIT}</div>
+
+    </div>
+
+    <div id="hub-shop-msg" class="merchant-msg"></div>
+
+    <div class="merchant-grid">
+      ${SHOP_ITEMS.map(item => {
+        const ownedCount = inv.filter(i => i === item.name).length;
+        const icon = item.icon || "";
+        const ownedText = ownedCount > 0 ? `<div class="merchant-sub">En mochila: <strong>x${ownedCount}</strong></div>` : `<div class="merchant-sub ghost">En mochila: x0</div>`;
+        return `
+          <div class="merchant-card" data-id="${item.id}">
+            <div class="merchant-card-main">
+              ${icon ? `<img src="${icon}" class="merchant-icon" alt="">` : ""}
+              <div class="merchant-info">
+                <div class="merchant-name">${item.name}</div>
+                <div class="merchant-desc">${item.description}</div>
+                ${ownedText}
+              </div>
+            </div>
+            <div class="merchant-card-footer">
+              <div class="merchant-price"><span class="coin"></span> ${item.cost}</div>
+              <button class="btn merchant-action shop-buy-btn">Comprar</button>
+            </div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  </div>
+`;
+
+
+    return;
+  }
+
+  // ===== Vista SELL (vender objetos) =====
+  if(hubShopView === "sell"){
+    const counts = {};
+    inv.forEach(n => counts[n] = (counts[n] || 0) + 1);
+    const names = Object.keys(counts).sort((a,b)=>a.localeCompare(b,'es'));
+
+    const grid = names.length ? `
+      <div class="merchant-topbar">
+        <button class="btn" id="merchant-back">← Mercader</button>
+        <div class="merchant-title">Vender</div>
+        <div class="merchant-gold"><span class="coin"></span> ${Number(player.gold)||0}</div>
+      </div>
+      <div id="hub-sell-msg" class="shop-msg"></div>
+      <div class="inv-grid">
+        ${names.map(name=>{
+          const icon = getShopIconByItemName(name);
+          const value = getSellValue(name);
+          return `
+            <div class="inv-card common" data-name="${name}">
+              <div class="inv-card-main">
+                <img src="${icon}" alt="${name}" class="inv-card-icon" onerror="this.onerror=null;this.src='${DEFAULT_ITEM_ICON}';">
+                <div class="inv-card-text">
+                  <div class="inv-card-name">${name} <span class="inv-card-qty">x${counts[name]}</span></div>
+                  <div class="inv-card-desc">Valor de venta: ${value} oro</div>
+                  <div class="inv-card-actions">
+                    <button class="inv-sell-btn" data-item="${name}">Vender +${value}</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    ` : `
+      <div class="merchant-topbar">
+        <button class="btn" id="merchant-back">← Mercader</button>
+        <div class="merchant-title">Vender</div>
+      </div>
+      <div class="hint">No tienes objetos para vender.</div>
+    `;
+
+    mount.innerHTML = `
+  <div class="merchant-screen">
+    <div class="merchant-topbar">
+      <button class="btn" id="merchant-back">← Mercader</button>
+      <div class="merchant-title">Vender</div>
+      <div class="merchant-badge"><span class="coin"></span> ${Number(player.gold)||0}</div>
+    </div>
+
+    <div id="hub-sell-msg" class="merchant-msg"></div>
+
+    ${names.length ? `
+      <div class="merchant-grid">
+        ${names.map(name=>{
+          const icon = getShopIconByItemName(name);
+          const value = getSellValue(name);
+          return `
+            <div class="merchant-card" data-name="${name}">
+              <div class="merchant-card-main">
+                <img src="${icon}" class="merchant-icon" alt="${name}" onerror="this.onerror=null;this.src='${DEFAULT_ITEM_ICON}';">
+                <div class="merchant-info">
+                  <div class="merchant-name">${name}</div>
+                  <div class="merchant-desc">Valor: <strong>${value}</strong> oro · En mochila: <strong>x${counts[name]}</strong></div>
+                </div>
+              </div>
+              <div class="merchant-card-footer">
+                <div class="merchant-price ghost">Vender 1 unidad</div>
+                <button class="btn merchant-action inv-sell-btn" data-item="${name}">Vender +${value}</button>
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    ` : `<div class="hint">No tienes objetos para vender.</div>`}
+  </div>
+`;
+
+
+    mount.querySelector('#merchant-back')?.addEventListener('click', ()=>{ hubShopView = "home"; renderHubShop(); });
+
+    mount.querySelectorAll('.inv-sell-btn').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const name = btn.dataset.item;
+        if(!name) return;
+        const ok = sellOneItem(name);
+        const msg = document.getElementById('hub-sell-msg');
+        if(msg && ok){
+          msg.innerHTML = `<span class="good">Has vendido <strong>${name}</strong> por <strong>${getSellValue(name)}</strong> oro.</span>`;
+        }
+        renderHubShop();
+      });
     });
-  });
+
+    return;
+  }
+
+  // Fallback
+  hubShopView = "home";
+  renderHubShop();
 }
+
+
+let hubShopView = "buy"; // por defecto como hasta ahora
+
+function setHubShopView(view){
+  hubShopView = view || "home";
+}
+
+window.BG_UI = window.BG_UI || {};
+window.BG_UI.setHubShopView = setHubShopView;
+
 
 // Exponer render de tienda HUB
 window.BG_UI = window.BG_UI || {};
@@ -5041,6 +5241,13 @@ function endRunWinAll(){
     currentMonsterHp = monster.maxHp;
     resetBattleState();
 
+
+    // FIX: al morir se bloquean controles; al “continuar” deben reactivarse
+    try{
+      battleState.isDeathAnimating = false; // por si quedó enganchado
+      unlockBattleControls();
+      if(answerEl) answerEl.disabled = false; // extra defensivo
+    }catch(e){}
     updateHeroUi();
     updateHpBars();
     savePlayer();
@@ -6562,7 +6769,9 @@ window.BG_ACHIEVEMENTS_CATALOG = ACHIEVEMENTS;
   
   let lastNonAchMode = "battle";
 function renderAchievements(){
-    ensureAchievementsUI(); ensureAchievements();
+    ensureAchievementsUI();
+    if(!ensureAchievements()) return;
+
     const grid = document.getElementById("ach-grid");
     const summaryEl = document.getElementById("ach-summary");
     const catsEl = document.getElementById("ach-cats");
@@ -6828,8 +7037,8 @@ function renderAchievements(){
     });
   }
 
-  function hookSession(){
-    ensureAchievements();
+    function hookSession(){
+    if(!ensureAchievements()) return; // ✅ evita player null
     const now = new Date();
     const key = now.toISOString().slice(0,10);
     const days = player.achievements.progress.__days || {};

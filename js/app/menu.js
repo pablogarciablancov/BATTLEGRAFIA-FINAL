@@ -179,10 +179,12 @@
   }
 
   function openShopScreen(){
-    showAppScreen('hub-shop');
-    // Render tienda HUB desde el motor, si existe
-    window.BG_UI?.renderHubShop?.();
-  }
+  showAppScreen('hub-shop');
+  // ✅ Arrancar tienda siempre en el “home” del mercader
+  window.BG_UI?.setHubShopView?.('home');
+  window.BG_UI?.renderHubShop?.();
+}
+
 
   function openCollectionScreen(){
     showAppScreen('hub-collection');
