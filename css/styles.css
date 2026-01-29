@@ -2118,28 +2118,6 @@ footer.copyright{
   font-size: 12px;
 }
 
-.hub-backpack .bp-cap{
-  font-weight: 700;
-  opacity: .8;
-  margin-left: 6px;
-}
-
-.hub-backpack .bp-sell{
-  margin-left: 6px;
-  padding: 5px 8px;
-  border-radius: 999px;
-  border: 1px solid rgba(255,255,255,.18);
-  background: rgba(0,0,0,.22);
-  color: rgba(255,255,255,.92);
-  font-size: 11px;
-  font-weight: 800;
-  cursor: pointer;
-}
-.hub-backpack .bp-sell:hover{
-  background: rgba(255,255,255,.10);
-}
-
-
 /* Mode select */
 .mode-menu{ align-items:center; justify-content:center; padding:18px; background: rgba(2,6,23,.92); }
 .mode-grid{
