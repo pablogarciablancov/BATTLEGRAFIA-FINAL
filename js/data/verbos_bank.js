@@ -2,7 +2,7 @@
   'use strict';
   window.BG_CONTENT_BANKS = window.BG_CONTENT_BANKS || {};
   // Banco de VERBOS: añade aquí tus frases por monstruo (mismo formato que ortografía).
-  window.BG_CONTENT_BANKS.morfologia = window.BG_CONTENT_BANKS.morfologia || {};
+  window.BG_CONTENT_BANKS.verbos = window.BG_CONTENT_BANKS.verbos || {};
 })();
 // js/data/verbos_bank.js
 (function () {
