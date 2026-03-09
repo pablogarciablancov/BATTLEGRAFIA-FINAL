@@ -2042,16 +2042,56 @@ function makeMonsterSprite(name, tone){
 
 
   const SHOP_ITEMS = [
-    { id:"pluma_maestra", name:"Pluma maestra", cost:40, description:"Aumenta tu vida máxima en +20 y te cura por completo.", effect:{ type:"maxHpUp", amount:20 }, icon:"img/items/item_pluma_maestra.webp" },
-    { id:"cuaderno_descanso", name:"Cuaderno de descanso", cost:50, description:"Restaura toda tu vida al instante.", effect:{ type:"healFull" }, icon:"img/items/item_cuaderno_descanso.webp" },
-    { id:"botas_corregidor", name:"Botas del Corregidor", cost:25, description:"No dan bonificación numérica, pero quedan genial en tu inventario.", effect:{ type:"cosmetic" }, icon:"img/items/item_botas_corregidor.webp" },
-    { id:"pista_simple", name:"Pergamino de pista", cost:15, description:"Te permite pedir una pista ortográfica durante la batalla.", effect:{ type:"battleConsumable" }, icon:"img/items/item_pista_simple.webp" },
-    { id:"pocion_tinta", name:"Poción de tinta", cost:25, description:"Inflige 25 puntos de daño directo al monstruo (no puede rematarlo).", effect:{ type:"battleConsumable" }, icon:"img/items/item_pocion_tinta.webp" },
-    { id:"escudo_gramatical", name:"Escudo gramatical", cost:25, description:"Reduce a la mitad el daño del próximo ataque del monstruo.", effect:{ type:"battleConsumable" }, icon:"img/items/item_escudo_gramatical.webp" },
-    { id:"pocion_debilitante", name:"Poción debilitante", cost:30, description:"Debilita al monstruo: sus próximos ataques hacen menos daño.", effect:{ type:"battleConsumable" }, icon:"img/items/item_pocion_debilitante.webp" },
-    { id:"tinta_corrosiva", name:"Tinta corrosiva", cost:30, description:"Tus ataques infligen daño extra durante varios turnos.", effect:{ type:"battleConsumable" }, icon:"img/items/item_tinta_corrosiva.webp" },
-    { id:"expansor_tildes", name:"Expansor de tildes", cost:25, description:"Tu próximo ataque perfecto hará más daño gracias a las tildes.", effect:{ type:"battleConsumable" }, icon:"img/items/item_expansor_tildes.webp" }
-  ];
+  // ===== Supervivencia (barato / recurrente) =====
+  { id:"venda_rapida", name:"Venda rápida", cost:10,
+    description:"Cura 25 PV. (uso fuera de combate)",
+    effect:{ type:"heal25" }, icon:"img/items/item_venda_rapida.webp" },
+
+  { id:"cuaderno_descanso", name:"Cuaderno de descanso", cost:35,
+    description:"Restaura toda tu vida al instante. (uso fuera de combate)",
+    effect:{ type:"healFull" }, icon:"img/items/item_cuaderno_descanso.webp" },
+
+  // ===== Pistas (aprendizaje) =====
+  { id:"pista_simple", name:"Pergamino de pista", cost:12,
+    description:"Pista genérica durante la batalla. (1 uso)",
+    effect:{ type:"battleConsumable" }, icon:"img/items/item_pista_simple.webp" },
+
+  { id:"lupa_corrector", name:"Lupa del corrector", cost:25,
+    description:"Pista potente durante la batalla. (1 uso)",
+    effect:{ type:"battleConsumable" }, icon:"img/items/item_lupa_corrector.webp" },
+
+  // ===== Defensa / control =====
+  { id:"escudo_gramatical", name:"Escudo gramatical", cost:20,
+    description:"Reduce a la mitad el daño del próximo ataque del monstruo.",
+    effect:{ type:"battleConsumable" }, icon:"img/items/item_escudo_gramatical.webp" },
+
+  { id:"pocion_debilitante", name:"Poción debilitante", cost:30,
+    description:"Debilita al monstruo durante varios turnos.",
+    effect:{ type:"battleConsumable" }, icon:"img/items/item_pocion_debilitante.webp" },
+
+  // ===== Ofensiva =====
+  { id:"pocion_tinta", name:"Poción de tinta", cost:25,
+    description:"Inflige 25 puntos de daño directo al monstruo (no puede rematarlo).",
+    effect:{ type:"battleConsumable" }, icon:"img/items/item_pocion_tinta.webp" },
+
+  { id:"tinta_corrosiva", name:"Tinta corrosiva", cost:30,
+    description:"Tus ataques infligen daño extra durante varios turnos.",
+    effect:{ type:"battleConsumable" }, icon:"img/items/item_tinta_corrosiva.webp" },
+
+  { id:"expansor_tildes", name:"Expansor de tildes", cost:20,
+    description:"Tu próximo ataque perfecto hará más daño gracias a las tildes.",
+    effect:{ type:"battleConsumable" }, icon:"img/items/item_expansor_tildes.webp" },
+
+  // ===== Mejora permanente (cara / poco frecuente) =====
+  { id:"pluma_maestra", name:"Pluma maestra", cost:60,
+    description:"Aumenta tu vida máxima en +20 (permanente).",
+    effect:{ type:"maxHpUp", amount:20 }, icon:"img/items/item_pluma_maestra.webp" },
+
+  // ===== Cosmético (coleccionable) =====
+  { id:"botas_corregidor", name:"Botas del Corregidor", cost:15,
+    description:"Coleccionable. No se usa en combate.",
+    effect:{ type:"cosmetic" }, icon:"img/items/item_botas_corregidor.webp" }
+];
 
   const DEFAULT_ITEM_ICON = "img/items/item_pista_simple.webp";
 
@@ -2091,6 +2131,25 @@ function makeMonsterSprite(name, tone){
     "espectro_agudo": "Acento Condensado",
     "serpiente_comata": "Colmillo Comático"
   };
+
+  // ===== Reliquias (jefes) =====
+  const BOSS_RELICS = ["Sello del Castillo Roto","Amuleto de la Coma Antigua","Medalla del Corrector"];
+  const RELIC_DEFS = {
+    "Sello del Castillo Roto": { icon:"img/items/item_relic_sello_castillo.webp", rarity:"relic", desc:"Reliquia de jefe. No se puede vender." },
+    "Amuleto de la Coma Antigua": { icon:"img/items/item_relic_amulet_coma.webp", rarity:"relic", desc:"Reliquia de jefe. No se puede vender." },
+    "Medalla del Corrector": { icon:"img/items/item_relic_medalla_corrector.webp", rarity:"relic", desc:"Reliquia de jefe. No se puede vender." }
+  };
+
+  // Inyecta defs en ITEM_DEFS para que tengan icono/desc si alguna UI las muestra
+  try{
+    if(typeof ITEM_DEFS === "object" && ITEM_DEFS){
+      Object.keys(RELIC_DEFS).forEach(k=>{
+        if(!ITEM_DEFS[k]) ITEM_DEFS[k] = RELIC_DEFS[k];
+      });
+    }
+  }catch(e){}
+
+
 
   // ====== Estado ======
   let player = null;
@@ -2383,6 +2442,7 @@ function setPlayerRef(p){ player = p; try{ window.BG = window.BG || {}; window.B
   const CONTENT_LABELS = {
     ortografia: "Ortografía",
     morfologia: "Morfología",
+	verbos: "Verbos",
     literatura: "Literatura",
     sintaxis: "Sintaxis",
     semantica: "Semántica",
@@ -2832,26 +2892,13 @@ function setPlayerRef(p){ player = p; try{ window.BG = window.BG || {}; window.B
     if(sb && currentUser){
       try{
         const remote = await remoteLoad();
-if(remote){
-  // ✅ Normaliza para que no falten campos al venir de nube
-  if(!Array.isArray(remote.items)) remote.items = [];
-  if(!Array.isArray(remote.cards)) remote.cards = [];
-  if(!Array.isArray(remote.defeatedMonsters)) remote.defeatedMonsters = [];
-  if(typeof remote.maxHp === "undefined") remote.maxHp = 100;
-  if(typeof remote.hp === "undefined") remote.hp = remote.maxHp;
-  if(typeof remote.gold === "undefined") remote.gold = 0;
-  if(typeof remote.level === "undefined") remote.level = 1;
-  if(typeof remote.xp === "undefined") remote.xp = 0;
-  if(typeof remote.xpToNext === "undefined") remote.xpToNext = 100;
-  if(typeof remote.monstersDefeated === "undefined") remote.monstersDefeated = 0;
-
-  // Sincronizamos también el guardado local por compatibilidad
-  try{
-    localStorage.setItem(storageKeyForMode(STORAGE_KEY), JSON.stringify(remote));
-  }catch(e){}
-  return remote;
-}
-
+        if(remote){
+          // Sincronizamos también el guardado local por compatibilidad
+          try{
+            localStorage.setItem(storageKeyForMode(STORAGE_KEY), JSON.stringify(remote));
+          }catch(e){}
+          return remote;
+        }
       }catch(e){
         console.warn("Remote load error:", e);
       }
@@ -2948,15 +2995,14 @@ if(remote){
   }
 
   // ===== Usabilidad de objetos =====
-  const SHOP_NON_BATTLE_USABLE = new Set(["Pluma maestra", "Cuaderno de descanso"]);
+  const SHOP_NON_BATTLE_USABLE = new Set(["Pluma maestra", "Cuaderno de descanso", "Venda rápida"]);
   const SHOP_NOT_USABLE = new Set(["Botas del Corregidor"]);
 
   const BATTLE_USABLE = new Set([
-    "Pergamino de pista","Poción de tinta","Escudo gramatical","Poción debilitante","Tinta corrosiva","Expansor de tildes",
-    "Mancha de Tinta","Coma Semilla","Eco Agudo","Pergamino Roto",
+    "Pergamino de pista","Lupa del corrector","Poción de tinta","Escudo gramatical","Poción debilitante","Tinta corrosiva","Expansor de tildes",
+    "Coma Semilla","Pergamino Roto","Mancha de Tinta","Polvo de Tilde","Eco Agudo","Pluma Arcana","Gema de Conjugación","Cristal Vocálico","Runas de Coherencia",
     "H Perdida","Colmillo Ortográfico","Garra Confusora","Acento Condensado","Colmillo Comático",
-    "Pluma Arcana","Cristal Vocálico","Runas de Coherencia","Gema de Conjugación",
-    "Orbe de la Ortografía Perfecta","Libro Viviente","Corona del Corrector Supremo"
+    "Orbe de la Ortografía Perfecta","Corona del Corrector Supremo","Libro Viviente"
   ]);
 
   function updateBattleItemSelect(){
@@ -2968,6 +3014,43 @@ if(remote){
     battleItemSelect.innerHTML = `<option value="">Usar objeto…</option>`;
 
     const counts = {};
+
+
+  function getStrongHintText(){
+    const m = getMonsterAt(currentMonsterIndex);
+    const rule = m?.rule ? `Regla: ${m.rule}` : "";
+    const wrong = currentPhrase?.wrong || "";
+    const correct = currentPhrase?.correct || "";
+
+    if(!wrong || !correct || wrong === correct){
+      return rule ? `${rule}` : "Pista potente: revisa con calma la regla del monstruo.";
+    }
+
+    // Máscara: deja espacios/puntuación y oculta letras.
+    let masked = "";
+    for(let i=0;i<correct.length;i++){
+      const ch = correct[i];
+      const isLetter = /[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]/.test(ch);
+      masked += isLetter ? "▢" : ch;
+    }
+
+    // Revela hasta 3 posiciones donde difieren (para no regalar la respuesta)
+    const diffs = [];
+    const L = Math.max(wrong.length, correct.length);
+    for(let i=0;i<L;i++){
+      if((wrong[i]||"") !== (correct[i]||"")){
+        diffs.push(i);
+        if(diffs.length>=3) break;
+      }
+    }
+    diffs.forEach(i=>{
+      if(i>=0 && i<masked.length){
+        masked = masked.substring(0,i) + correct[i] + masked.substring(i+1);
+      }
+    });
+
+    return `${rule}${rule ? " · " : ""}Pista potente: ${masked}`;
+  }
     const allowedSet = (runModeId === "strategy" && runState && Array.isArray(runState.allowedItems))
       ? new Set(runState.allowedItems)
       : null;
@@ -3006,6 +3089,15 @@ if(remote){
       updateBattleItemSelect(); updateHeroUi();
       return;
     }
+
+    if(itemName === "Lupa del corrector"){
+      setLog(`<span class="good">${itemName} usada.</span><br><span class="hint">${getStrongHintText()}</span>`);
+      if(consume) removeOneItem(itemName);
+      if(runRules?.allowProgress) savePlayer();
+      updateBattleItemSelect(); updateHeroUi();
+      return;
+    }
+
 
     if(itemName === "Poción de tinta"){
       if(currentMonsterHp <= 1){
@@ -3104,7 +3196,20 @@ if(remote){
     }
 
     if(SHOP_NON_BATTLE_USABLE.has(itemName)){
-      if(itemName === "Cuaderno de descanso"){
+            if(itemName === "Venda rápida"){
+        if(player.hp >= player.maxHp){
+          setLog(`<span class="hint">Ya estás a tope de vida. Guarda la Venda rápida para más adelante.</span>`);
+          return;
+        }
+        const before = player.hp;
+        player.hp = Math.min(player.maxHp, player.hp + 25);
+        removeOneItem(itemName);
+        updateHpBars(); updateHeroUi(); savePlayer();
+        setLog(`<span class="good">Usas ${itemName}.</span> Recuperas <strong>${player.hp - before}</strong> PV.`);
+        return;
+      }
+
+if(itemName === "Cuaderno de descanso"){
         if(player.hp >= player.maxHp){
           setLog(`<span class="hint">Ya estás a tope de vida. Guarda el Cuaderno de descanso para un mal día.</span>`);
           return;
@@ -3118,10 +3223,10 @@ if(remote){
 
       if(itemName === "Pluma maestra"){
         player.maxHp += 20;
-        player.hp = player.maxHp;
+        player.hp = Math.min(player.maxHp, player.hp + 20);
         removeOneItem(itemName);
         updateHpBars(); updateHeroUi(); savePlayer();
-        setLog(`<span class="good">Usas ${itemName}.</span> +20 a vida máxima y curación completa.`);
+        setLog(`<span class="good">Usas ${itemName}.</span> +20 a vida máxima (permanente) y recuperas 20 PV.`);
         return;
       }
     }
@@ -3164,18 +3269,15 @@ if(remote){
     xpBarFill.style.width = xpPercent + "%";
     xpText.textContent = `EXP ${player.xp} / ${Number.isFinite(player.xpToNext)?player.xpToNext:100}`;
 
-   heroGoldEl.textContent = `Oro: ${player.gold}`;
+    heroGoldEl.textContent = `Oro: ${player.gold}`;
+    heroCardsCountEl.textContent = `Cartas: ${player.cards.length}`;
 
-const safeCards = Array.isArray(player.cards) ? player.cards : [];
-heroCardsCountEl.textContent = `Cartas: ${safeCards.length}`;
-
-// Objetos
-const safeItems = Array.isArray(player.items) ? player.items : [];
-if(safeItems.length === 0){
+    // Objetos
+    if(player.items.length === 0){
       itemsListEl.innerHTML = `<span class="hint">Sin objetos... de momento.</span>`;
     }else{
       const counts = {};
-      safeItems.forEach(n => { counts[n] = (counts[n]||0) + 1; });
+      player.items.forEach(n => { counts[n] = (counts[n]||0) + 1; });
 
       const itemsHtml =
         `<div class="inv-grid">` +
@@ -4166,38 +4268,6 @@ function getHubShopMount(){
   return mount;
 }
 
-function getShopIconByItemName(itemName){
-  const si = SHOP_ITEMS.find(x => x.name === itemName);
-  if(si?.icon) return si.icon;
-  const def = ITEM_DEFS?.[itemName];
-  return def?.icon || DEFAULT_ITEM_ICON;
-}
-
-function getSellValue(itemName){
-  const si = SHOP_ITEMS.find(x => x.name === itemName);
-  if(si) return Math.max(1, Math.floor((Number(si.cost) || 0) / 2));
-  return 2;
-}
-
-function sellOneItem(itemName){
-  if(!player || !Array.isArray(player.items)) return false;
-  const idx = player.items.indexOf(itemName);
-  if(idx < 0) return false;
-
-  const value = getSellValue(itemName);
-  player.items.splice(idx, 1);
-  player.gold = (Number(player.gold) || 0) + value;
-
-  updateHeroUi();
-  savePlayer();
-
-  try{ window.BG_UI?.renderHubBackpack?.(); }catch(e){}
-  return true;
-}
-
-  const HUB_MERCHANT_IMG = "img/menus/menu_merchant.webp"; // cámbialo si tu nombre/ruta es otra
-
-
 function renderHubShop(){
   const mount = getHubShopMount();
   if(!mount) return;
@@ -4211,195 +4281,43 @@ function renderHubShop(){
     mount.innerHTML = `<div class="hint">Sin conexión: ahora mismo no puedes usar la tienda. Vuelve a conectarte a Internet.</div>`;
     return;
   }
+
   if(!player){
     mount.innerHTML = `<div class="hint">Cargando datos de jugador…</div>`;
     return;
   }
 
-  // ✅ Blindaje: inventario siempre es array
-  if(!Array.isArray(player.items)) player.items = [];
-  const inv = player.items;
-
-// Fallback seguro por si aún no existe la constante global
-const INVENTORY_LIMIT = (typeof INVENTORY_MAX_ITEMS !== "undefined")
-  ? INVENTORY_MAX_ITEMS
-  : inv.length;
-
-
-  // Si no está definido (por compatibilidad), arrancamos en home
-  if(!hubShopView) hubShopView = "home";
-
-  // ===== Vista HOME (mercader) =====
-  if(hubShopView === "home"){
-    mount.innerHTML = `
-      <div class="merchant-home">
-        <div class="merchant-portrait" style="background-image:url('${HUB_MERCHANT_IMG}')"></div>
-        <div class="merchant-actions">
-          <button class="btn big" id="merchant-buy">Comprar</button>
-          <button class="btn big" id="merchant-sell">Vender</button>
-        </div>
-        <div class="merchant-hint">¿Qué necesitas hoy, viajero?</div>
-      </div>
-    `;
-    mount.querySelector('#merchant-buy')?.addEventListener('click', ()=>{ hubShopView = "buy"; renderHubShop(); });
-    mount.querySelector('#merchant-sell')?.addEventListener('click', ()=>{ hubShopView = "sell"; renderHubShop(); });
-    return;
-  }
-
-  // ===== Vista BUY (tienda tal cual) =====
-  if(hubShopView === "buy"){
-   mount.innerHTML = `
-  <div class="merchant-screen">
-    <div class="merchant-topbar">
-      <button class="btn" id="merchant-back">← Mercader</button>
-      <div class="merchant-title">Comprar</div>
-      <div class="merchant-badge">Mochila ${inv.length}/${INVENTORY_LIMIT}</div>
-
-    </div>
-
-    <div id="hub-shop-msg" class="merchant-msg"></div>
-
-    <div class="merchant-grid">
-      ${SHOP_ITEMS.map(item => {
-        const ownedCount = inv.filter(i => i === item.name).length;
-        const icon = item.icon || "";
-        const ownedText = ownedCount > 0 ? `<div class="merchant-sub">En mochila: <strong>x${ownedCount}</strong></div>` : `<div class="merchant-sub ghost">En mochila: x0</div>`;
-        return `
-          <div class="merchant-card" data-id="${item.id}">
-            <div class="merchant-card-main">
-              ${icon ? `<img src="${icon}" class="merchant-icon" alt="">` : ""}
-              <div class="merchant-info">
-                <div class="merchant-name">${item.name}</div>
-                <div class="merchant-desc">${item.description}</div>
-                ${ownedText}
-              </div>
-            </div>
-            <div class="merchant-card-footer">
-              <div class="merchant-price"><span class="coin"></span> ${item.cost}</div>
-              <button class="btn merchant-action shop-buy-btn">Comprar</button>
-            </div>
+  mount.innerHTML = `<div id="hub-shop-msg" class="shop-msg"></div>` + SHOP_ITEMS.map(item => {
+    const ownedCount = player.items.filter(i => i === item.name).length;
+    const ownedText = ownedCount > 0 ? `<div class="shop-owned">Ya tienes ${ownedCount} en tu inventario.</div>` : "";
+    const icon = item.icon || "";
+    return `
+      <div class="shop-item" data-id="${item.id}">
+        <div class="shop-item-main">
+          ${icon ? `<img src="${icon}" class="shop-item-icon" alt="">` : ""}
+          <div class="shop-item-text">
+            <div class="shop-item-name">${item.name}</div>
+            <div class="shop-item-desc">${item.description}</div>
           </div>
-        `;
-      }).join('')}
-    </div>
-  </div>
-`;
-
-
-    return;
-  }
-
-  // ===== Vista SELL (vender objetos) =====
-  if(hubShopView === "sell"){
-    const counts = {};
-    inv.forEach(n => counts[n] = (counts[n] || 0) + 1);
-    const names = Object.keys(counts).sort((a,b)=>a.localeCompare(b,'es'));
-
-    const grid = names.length ? `
-      <div class="merchant-topbar">
-        <button class="btn" id="merchant-back">← Mercader</button>
-        <div class="merchant-title">Vender</div>
-        <div class="merchant-gold"><span class="coin"></span> ${Number(player.gold)||0}</div>
+        </div>
+        <div class="shop-item-footer">
+          <div class="shop-price">${item.cost} oro</div>
+          <button class="shop-buy-btn">Comprar</button>
+        </div>
+        ${ownedText}
       </div>
-      <div id="hub-sell-msg" class="shop-msg"></div>
-      <div class="inv-grid">
-        ${names.map(name=>{
-          const icon = getShopIconByItemName(name);
-          const value = getSellValue(name);
-          return `
-            <div class="inv-card common" data-name="${name}">
-              <div class="inv-card-main">
-                <img src="${icon}" alt="${name}" class="inv-card-icon" onerror="this.onerror=null;this.src='${DEFAULT_ITEM_ICON}';">
-                <div class="inv-card-text">
-                  <div class="inv-card-name">${name} <span class="inv-card-qty">x${counts[name]}</span></div>
-                  <div class="inv-card-desc">Valor de venta: ${value} oro</div>
-                  <div class="inv-card-actions">
-                    <button class="inv-sell-btn" data-item="${name}">Vender +${value}</button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          `;
-        }).join('')}
-      </div>
-    ` : `
-      <div class="merchant-topbar">
-        <button class="btn" id="merchant-back">← Mercader</button>
-        <div class="merchant-title">Vender</div>
-      </div>
-      <div class="hint">No tienes objetos para vender.</div>
     `;
+  }).join('');
 
-    mount.innerHTML = `
-  <div class="merchant-screen">
-    <div class="merchant-topbar">
-      <button class="btn" id="merchant-back">← Mercader</button>
-      <div class="merchant-title">Vender</div>
-      <div class="merchant-badge"><span class="coin"></span> ${Number(player.gold)||0}</div>
-    </div>
-
-    <div id="hub-sell-msg" class="merchant-msg"></div>
-
-    ${names.length ? `
-      <div class="merchant-grid">
-        ${names.map(name=>{
-          const icon = getShopIconByItemName(name);
-          const value = getSellValue(name);
-          return `
-            <div class="merchant-card" data-name="${name}">
-              <div class="merchant-card-main">
-                <img src="${icon}" class="merchant-icon" alt="${name}" onerror="this.onerror=null;this.src='${DEFAULT_ITEM_ICON}';">
-                <div class="merchant-info">
-                  <div class="merchant-name">${name}</div>
-                  <div class="merchant-desc">Valor: <strong>${value}</strong> oro · En mochila: <strong>x${counts[name]}</strong></div>
-                </div>
-              </div>
-              <div class="merchant-card-footer">
-                <div class="merchant-price ghost">Vender 1 unidad</div>
-                <button class="btn merchant-action inv-sell-btn" data-item="${name}">Vender +${value}</button>
-              </div>
-            </div>
-          `;
-        }).join('')}
-      </div>
-    ` : `<div class="hint">No tienes objetos para vender.</div>`}
-  </div>
-`;
-
-
-    mount.querySelector('#merchant-back')?.addEventListener('click', ()=>{ hubShopView = "home"; renderHubShop(); });
-
-    mount.querySelectorAll('.inv-sell-btn').forEach(btn=>{
-      btn.addEventListener('click', ()=>{
-        const name = btn.dataset.item;
-        if(!name) return;
-        const ok = sellOneItem(name);
-        const msg = document.getElementById('hub-sell-msg');
-        if(msg && ok){
-          msg.innerHTML = `<span class="good">Has vendido <strong>${name}</strong> por <strong>${getSellValue(name)}</strong> oro.</span>`;
-        }
-        renderHubShop();
-      });
+  mount.querySelectorAll('.shop-item .shop-buy-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const root = btn.closest('.shop-item');
+      if(!root) return;
+      (window.buyShopItem || buyShopItem)(root.dataset.id);
+      try{ renderHubShop(); }catch(e){}
     });
-
-    return;
-  }
-
-  // Fallback
-  hubShopView = "home";
-  renderHubShop();
+  });
 }
-
-
-let hubShopView = "buy"; // por defecto como hasta ahora
-
-function setHubShopView(view){
-  hubShopView = view || "home";
-}
-
-window.BG_UI = window.BG_UI || {};
-window.BG_UI.setHubShopView = setHubShopView;
-
 
 // Exponer render de tienda HUB
 window.BG_UI = window.BG_UI || {};
@@ -5702,21 +5620,51 @@ if(currentMonsterHp <= 0 || forceWinByStreak){
     let rewardText = `<br><br><span class="good">¡Has derrotado a ${m.name}!</span><br>`;
     rewardText += `<span class="hint">Recompensas base:</span> +${m.xpReward} EXP adicionales, +${m.goldReward} oro y <em>${m.cardReward}</em>`;
 
+    // ===== Botín (todos los monstruos dejan algo) =====
+    // 1) Siempre: 1 común
+    const commonDrop = COMMON_ITEMS[Math.floor(Math.random()*COMMON_ITEMS.length)];
+    if(commonDrop){
+      addItem(commonDrop);
+      rewardText += `<br><span class="good">Botín:</span> encuentras <strong>${commonDrop}</strong>.`;
+    }
+
+    // 2) Único del monstruo (si existe): 60%
     const uniqueItemName = MONSTER_UNIQUE_ITEMS[m.id];
-    if(uniqueItemName){
+    if(uniqueItemName && Math.random() < 0.60){
       addItem(uniqueItemName);
       rewardText += `<br><span class="good">Objeto único:</span> obtienes <strong>${uniqueItemName}</strong>.`;
     }
 
-    const roll = Math.random()*100;
-    let extraItemName = null;
-    if(roll < 70) extraItemName = COMMON_ITEMS[Math.floor(Math.random()*COMMON_ITEMS.length)];
-    else if(roll < 90) extraItemName = RARE_ITEMS[Math.floor(Math.random()*RARE_ITEMS.length)];
-    else if(roll < 95) extraItemName = LEGENDARY_ITEMS[Math.floor(Math.random()*LEGENDARY_ITEMS.length)];
+    // 3) Extra raro / legendario
+    const rollRare = Math.random();
+    if(rollRare < 0.18){
+      const rareDrop = RARE_ITEMS[Math.floor(Math.random()*RARE_ITEMS.length)];
+      if(rareDrop){
+        addItem(rareDrop);
+        rewardText += `<br><span class="good">Botín raro:</span> encuentras <strong>${rareDrop}</strong>.`;
+      }
+    }
+    const rollLeg = Math.random();
+    if(rollLeg < 0.04){
+      const legDrop = LEGENDARY_ITEMS[Math.floor(Math.random()*LEGENDARY_ITEMS.length)];
+      if(legDrop){
+        addItem(legDrop);
+        rewardText += `<br><span class="good">Botín legendario:</span> hallas <strong>${legDrop}</strong>.`;
+      }
+    }
 
-    if(extraItemName){
-      addItem(extraItemName);
-      rewardText += `<br><span class="good">Botín adicional:</span> encuentras <strong>${extraItemName}</strong>.`;
+    // 4) Reliquia (solo jefes)
+    const isBoss = !!m.isBoss || !!m.boss || (m.type === "boss");
+    if(isBoss && Math.random() < 0.40){
+      const relic = BOSS_RELICS[Math.floor(Math.random()*BOSS_RELICS.length)];
+      if(relic){
+        player.relics = player.relics || [];
+        if(!player.relics.includes(relic)){
+          player.relics.push(relic);
+          savePlayer();
+        }
+        rewardText += `<br><span class="good">¡Reliquia!</span> obtienes <strong>${relic}</strong>.`;
+      }
     }
 
     addXp(m.xpReward);
@@ -6769,9 +6717,7 @@ window.BG_ACHIEVEMENTS_CATALOG = ACHIEVEMENTS;
   
   let lastNonAchMode = "battle";
 function renderAchievements(){
-    ensureAchievementsUI();
-    if(!ensureAchievements()) return;
-
+    ensureAchievementsUI(); ensureAchievements();
     const grid = document.getElementById("ach-grid");
     const summaryEl = document.getElementById("ach-summary");
     const catsEl = document.getElementById("ach-cats");
@@ -7037,8 +6983,8 @@ function renderAchievements(){
     });
   }
 
-    function hookSession(){
-    if(!ensureAchievements()) return; // ✅ evita player null
+  function hookSession(){
+    if(!ensureAchievements()) return;   // <-- FIX: si no hay player, no toques logros
     const now = new Date();
     const key = now.toISOString().slice(0,10);
     const days = player.achievements.progress.__days || {};
