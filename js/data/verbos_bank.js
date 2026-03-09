@@ -4,15 +4,9 @@
   // Banco de VERBOS: añade aquí tus frases por monstruo (mismo formato que ortografía).
   window.BG_CONTENT_BANKS.morfologia = window.BG_CONTENT_BANKS.morfologia || {};
 })();
-// js/data/morfologia_bank.js
+// js/data/verbos_bank.js
 (function () {
-      { wrong: "¿«baloncesto» es simple o compuesta?", correct: "compuesta" },
-      { wrong: "¿Lexemas en «baloncesto»? (letras)", correct: "dos" },
-(() => {
   "use strict";
-
-  window.BG_CONTENT_BANKS = window.BG_CONTENT_BANKS || {};
-
   /**
    * BANCO · VERBOS
    * - 20 preguntas por monstruo
