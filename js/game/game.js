@@ -2447,6 +2447,7 @@ function setPlayerRef(p){ player = p; try{ window.BG = window.BG || {}; window.B
     sintaxis: "Sintaxis",
     semantica: "Semántica",
     mix: "Un poco de todo"
+	matematicas: "Matemáticas"
   };
   const MODE_LABELS = {
     adventure: "Aventura",
